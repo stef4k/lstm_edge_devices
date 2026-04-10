@@ -23,12 +23,14 @@ data:
 
 # ─── Preprocessing ──────────────────────────────────────────────────────────
 preprocessing:
-  # Sliding window parameters
-  window_samples: 100      # time steps per window (1 s at 100 Hz)
-  stride_samples: 50       # stride (50 % overlap)
+  # Sliding window parameters — matches notebook WINDOW_SEC=4.0 at 100 Hz
+  window_samples: 400      # time steps per window (4 s at 100 Hz)
+  stride_samples: 200      # stride (50 % overlap)
   # Subcarrier selection: drop subcarriers that are all-zero across the
   # entire dataset (hardware artefact). Computed automatically at runtime.
-  # Normalization: z-score per subcarrier, fit on training fold only.
+  # Normalization: per-window z-score (each window normalized by its own
+  # mean/std). This removes experiment-specific absolute amplitude offsets,
+  # making the model invariant to inter-experiment CSI level differences.
 
 # ─── Cross-validation ────────────────────────────────────────────────────────
 # Mirrors the notebook's experiment-stratified 5-fold design exactly.

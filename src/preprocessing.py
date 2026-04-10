@@ -121,29 +121,37 @@ def build_windows(
     return df_wins
 
 
-# ── normalization (fold-safe) ────────────────────────────────────────────────
+# ── normalization ────────────────────────────────────────────────────────────
 
-def fit_scaler(X_train: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def normalize_per_window(X: np.ndarray, eps: float = 1e-8) -> np.ndarray:
     """
-    Compute per-subcarrier mean and std from training windows.
+    Normalize each window independently by its own per-subcarrier mean and std.
 
-    X_train : (n_windows, window_samples, n_features)
-    Returns (mean, std) each of shape (1, 1, n_features).
+    X : (n_windows, window_samples, n_features)
+
+    For each window w and subcarrier f:
+        X[w, :, f] = (X[w, :, f] - mean(X[w, :, f])) / (std(X[w, :, f]) + eps)
+
+    This removes experiment-specific absolute amplitude offsets, making the
+    model invariant to the inter-experiment CSI level differences that caused
+    the global z-score approach to fail (mean amplitude varied ±50% across
+    experiments for the same activity class).
     """
-    flat = X_train.reshape(-1, X_train.shape[-1])   # (n*T, F)
-    mean = flat.mean(axis=0, keepdims=True)[None]    # (1, 1, F)
-    std = flat.std(axis=0, keepdims=True)[None]      # (1, 1, F)
-    std[std < 1e-8] = 1.0
-    return mean.astype(np.float32), std.astype(np.float32)
+    X = X.copy().astype(np.float32)
+    # mean/std over the time axis, per window and per subcarrier
+    mu  = X.mean(axis=1, keepdims=True)    # (N, 1, F)
+    std = X.std(axis=1,  keepdims=True)    # (N, 1, F)
+    std[std < eps] = 1.0
+    return ((X - mu) / std).astype(np.float32)
 
 
-def apply_scaler(
-    X: np.ndarray,
-    mean: np.ndarray,
-    std: np.ndarray,
-) -> np.ndarray:
-    """Z-score normalize X using pre-computed mean/std."""
-    return ((X - mean) / std).astype(np.float32)
+# Keep legacy names so train.py imports don't break; they are no-ops now.
+def fit_scaler(X_train: np.ndarray):
+    return None, None
+
+
+def apply_scaler(X: np.ndarray, mean, std) -> np.ndarray:
+    return X
 
 
 # ── window DataFrame → numpy ─────────────────────────────────────────────────

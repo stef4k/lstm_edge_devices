@@ -24,7 +24,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
 
 from .model import build_model
-from .preprocessing import apply_scaler, fit_scaler
+from .preprocessing import normalize_per_window
 
 
 # ── device ────────────────────────────────────────────────────────────────────
@@ -166,10 +166,11 @@ def train_fold(
     X_tr, y_tr = X[train_idx], y[train_idx]
     X_te, y_te = X[test_idx],  y[test_idx]
 
-    # Normalize: fit on training data only to avoid leakage
-    mean, std = fit_scaler(X_tr)
-    X_tr = apply_scaler(X_tr, mean, std)
-    X_te = apply_scaler(X_te, mean, std)
+    # Per-window normalization: each window is normalized by its own
+    # per-subcarrier mean and std.  This is applied independently to
+    # train and test (no information flows from train to test).
+    X_tr = normalize_per_window(X_tr)
+    X_te = normalize_per_window(X_te)
 
     device     = _get_device()
     n_features = X_tr.shape[2]
@@ -193,7 +194,7 @@ def train_fold(
     ).to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = Adam(model.parameters(), lr=learning_rate)
+    optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
 
     history = {
         "train_loss": [], "train_acc": [],
@@ -270,8 +271,6 @@ def train_fold(
         "y_pred": y_pred.astype(int),
         "y_pred_prob": y_pred_prob,
         "label_names": label_names,
-        "mean": mean,
-        "std": std,
     }
 
 
