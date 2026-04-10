@@ -1,0 +1,14 @@
+# Runtime dependencies for the LSTM HAR pipeline
+# Tested with the sensefi39 conda environment (Python 3.9)
+#
+# Install with:
+#   pip install -r requirements.txt
+
+torch>=1.12.0
+numpy>=2.0.0
+pandas>=2.0.0
+scikit-learn>=1.4.0
+scipy>=1.10.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+pyyaml>=6.0

@@ -1,0 +1,77 @@
+# ─── Data ───────────────────────────────────────────────────────────────────
+data:
+  base_dir: "data/PKL_26_04_07"
+  # exp7_line_of_sight is intentionally excluded
+  experiments:
+    - name: exp1
+      file: "exp1/data_2026_04_07_15_38_54.pkl"
+    - name: exp2
+      file: "exp2/data_2026_04_07_15_30_40.pkl"
+    - name: exp3
+      file: "exp3/data_2026_04_07_15_43_27.pkl"
+    - name: exp4
+      file: "exp4/data_2026_04_07_15_55_44.pkl"
+    - name: exp5_empty
+      file: "exp5_empty/data_2026_04_07_16_07_47.pkl"
+    - name: exp6_empty
+      file: "exp6_empty/data_2026_04_07_16_14_53.pkl"
+    - name: exp8
+      file: "exp8/data_2026_04_07_15_47_52.pkl"
+
+  target_labels: ["walk", "stand", "sit", "lying", "empty"]
+  transition_labels: ["changing zone"]   # dropped from all folds
+
+# ─── Preprocessing ──────────────────────────────────────────────────────────
+preprocessing:
+  # Sliding window parameters
+  window_samples: 100      # time steps per window (1 s at 100 Hz)
+  stride_samples: 50       # stride (50 % overlap)
+  # Subcarrier selection: drop subcarriers that are all-zero across the
+  # entire dataset (hardware artefact). Computed automatically at runtime.
+  # Normalization: z-score per subcarrier, fit on training fold only.
+
+# ─── Cross-validation ────────────────────────────────────────────────────────
+# Mirrors the notebook's experiment-stratified 5-fold design exactly.
+# Each fold withholds one activity experiment + 22 empty windows from one
+# empty experiment as the test set.
+cv:
+  random_seed: 42
+  empty_test_samples: 22   # empty windows sampled for the test split per fold
+  folds:
+    - activity_test: exp1
+      empty_test:    exp5_empty
+      empty_train:   exp6_empty
+    - activity_test: exp2
+      empty_test:    exp6_empty
+      empty_train:   exp5_empty
+    - activity_test: exp3
+      empty_test:    exp5_empty
+      empty_train:   exp6_empty
+    - activity_test: exp4
+      empty_test:    exp6_empty
+      empty_train:   exp5_empty
+    - activity_test: exp8
+      empty_test:    exp5_empty
+      empty_train:   exp6_empty
+
+# ─── Model ──────────────────────────────────────────────────────────────────
+model:
+  lstm_units: 64          # LSTM hidden size (paper uses 100 for 30 features)
+  dropout: 0.3            # dropout after LSTM layer
+
+# ─── Training ───────────────────────────────────────────────────────────────
+training:
+  epochs: 50
+  batch_size: 16
+  learning_rate: 0.0001   # paper value
+  optimizer: adam
+  loss: categorical_crossentropy
+  early_stopping:
+    enabled: true
+    patience: 10
+    monitor: val_accuracy
+    restore_best_weights: true
+
+# ─── Output ─────────────────────────────────────────────────────────────────
+output:
+  results_dir: "results"

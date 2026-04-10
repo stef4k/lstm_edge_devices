@@ -3,6 +3,13 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Data and notebooks (contain raw CSI measurements)
+data/
+notebooks/data_07_april.ipynb
+
+# Training outputs (model weights, logs, plots)
+results/
+slurm/logs/
 # C extensions
 *.so
 
