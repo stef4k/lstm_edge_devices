@@ -62,24 +62,28 @@ def make_cv_folds(
     folds = []
     for fc in fold_config:
         act_exp  = fc["activity_test"]
-        test_emp = fc["empty_test"]
+        test_emp = fc.get("empty_test", None)
 
-        act_idx       = np.where(exp_ids == act_exp)[0]
-        test_emp_pool = np.where(exp_ids == test_emp)[0]
+        act_idx  = np.where(exp_ids == act_exp)[0]
 
-        n_sample       = min(empty_test_samples, len(test_emp_pool))
-        empty_test_idx = rng.choice(test_emp_pool, size=n_sample, replace=False)
+        if test_emp is not None and empty_test_samples > 0:
+            test_emp_pool  = np.where(exp_ids == test_emp)[0]
+            n_sample       = min(empty_test_samples, len(test_emp_pool))
+            empty_test_idx = rng.choice(test_emp_pool, size=n_sample, replace=False)
+            test_idx       = np.concatenate([act_idx, empty_test_idx])
+            # Exclude all windows from both the test activity exp and the
+            # test-role empty exp (preventing leakage of unsampled windows).
+            excluded = set(act_idx.tolist()) | set(test_emp_pool.tolist())
+            fold_label = f"test={act_exp}+{test_emp}(n_empty={n_sample})"
+        else:
+            test_idx   = act_idx
+            excluded   = set(act_idx.tolist())
+            fold_label = f"test={act_exp}"
 
-        test_idx = np.concatenate([act_idx, empty_test_idx])
-
-        # Exclude all windows from both the test activity exp and the
-        # test-role empty exp (preventing leakage of unsampled windows).
-        excluded  = set(act_idx.tolist()) | set(test_emp_pool.tolist())
         train_idx = np.array(
             [i for i in range(n) if i not in excluded], dtype=np.int64
         )
 
-        fold_label = f"test={act_exp}+{test_emp}(n_empty={n_sample})"
         folds.append((train_idx, test_idx, fold_label))
 
     return folds

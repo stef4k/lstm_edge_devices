@@ -1,0 +1,61 @@
+# ─── Data ───────────────────────────────────────────────────────────────────
+data:
+  base_dir: "data/PKL_26_04_07"
+  # exp5_empty, exp6_empty, and exp7_line_of_sight are excluded.
+  # Empty class removed to match the original paper's 4-class setup.
+  experiments:
+    - name: exp1
+      file: "exp1/data_2026_04_07_15_38_54.pkl"
+    - name: exp2
+      file: "exp2/data_2026_04_07_15_30_40.pkl"
+    - name: exp3
+      file: "exp3/data_2026_04_07_15_43_27.pkl"
+    - name: exp4
+      file: "exp4/data_2026_04_07_15_55_44.pkl"
+    - name: exp8
+      file: "exp8/data_2026_04_07_15_47_52.pkl"
+
+  target_labels: ["walk", "stand", "sit", "lying"]
+  transition_labels: ["changing zone"]   # dropped from all folds
+
+# ─── Preprocessing ──────────────────────────────────────────────────────────
+preprocessing:
+  # w100/s50 — best-performing window configuration from the grid search
+  window_samples: 100   # 1 s at 100 Hz
+  stride_samples: 50    # 50 % overlap
+
+# ─── Cross-validation ────────────────────────────────────────────────────────
+# Same experiment-stratified 5-fold design as the baseline, but without any
+# empty-room experiments.  Each fold withholds one activity experiment as the
+# test set; the remaining four form the training set.
+cv:
+  random_seed: 42
+  empty_test_samples: 0   # no empty class — field kept for schema compatibility
+  folds:
+    - activity_test: exp1
+    - activity_test: exp2
+    - activity_test: exp3
+    - activity_test: exp4
+    - activity_test: exp8
+
+# ─── Model ──────────────────────────────────────────────────────────────────
+model:
+  lstm_units: 64          # LSTM hidden size (paper uses 100 for 30 features)
+  dropout: 0.3            # dropout after LSTM layer
+
+# ─── Training ───────────────────────────────────────────────────────────────
+training:
+  epochs: 50
+  batch_size: 16
+  learning_rate: 0.0001   # paper value
+  optimizer: adam
+  loss: categorical_crossentropy
+  early_stopping:
+    enabled: true
+    patience: 10
+    monitor: val_accuracy
+    restore_best_weights: true
+
+# ─── Output ─────────────────────────────────────────────────────────────────
+output:
+  results_dir: "results"
